@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - My Fluxo Finance</title>
+    <link rel="stylesheet" href="../CSS/styleLogin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Firebase SDK v9+ (Modular) -->
+    <script type="module">
+        // Importe os módulos necessários
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
+            authDomain: "my-fluxo-finance.firebaseapp.com",
+            projectId: "my-fluxo-finance",
+            storageBucket: "my-fluxo-finance.appspot.com",
+            messagingSenderId: "310977282920",
+            appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
+            measurementId: "G-SBWWBYKLQB"
+        };
+
+        // Inicialize o Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Função para fazer login
+        window.fazerLogin = async (email, senha) => {
+            try {
+                await signInWithEmailAndPassword(auth, email, senha);
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                let mensagemErro;
+                switch(error.code) {
+                    case "auth/invalid-email": mensagemErro = "E-mail inválido."; break;
+                    case "auth/user-disabled": mensagemErro = "Conta desativada."; break;
+                    case "auth/user-not-found": mensagemErro = "Usuário não encontrado."; break;
+                    case "auth/wrong-password": mensagemErro = "Senha incorreta."; break;
+                    default: mensagemErro = "Erro ao fazer login.";
+                }
+                document.getElementById('erro-login').textContent = mensagemErro;
+                document.getElementById('erro-login').style.display = 'block';
+            }
+        };
+
+        // Verifica se usuário já está logado
+        onAuthStateChanged(auth, (user) => {
+            if (user) window.location.href = "dashboard.html";
+        });
+    </script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="C:\Users\Pichau\OneDrive\Área de Trabalho\MY FLUXO FINANCE TCC\Images\MFF.jpg" alt="Logo" class="logo" style="height:60px;margin-bottom:20px;">
+            <h1>Bem-vindo</h1>
+            <p>Faça login para acessar sua conta</p>
+        </div>
+        
+        <div id="erro-login" class="mensagem-erro" style="display:none;"></div>
+        
+        <form class="login-form" onsubmit="event.preventDefault(); fazerLogin(email.value, password.value);">
+            <div class="input-group">
+                <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
+                <input type="email" id="email" placeholder="Digite seu e-mail" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <input type="password" id="password" placeholder="Digite sua senha" required>
+            </div>
+            
+            <div class="options">
+                <label><input type="checkbox" id="lembrar-me"> Lembrar-me</label>
+                <a href="recuperar-senha.html">Esqueci minha senha</a>
+            </div>
+            
+            <button type="submit" class="botao-primario" style="width:100%;">Entrar</button>
+            
+            <div class="register-link">
+                Não tem uma conta? <a href="cadastro.html">Cadastre-se</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
