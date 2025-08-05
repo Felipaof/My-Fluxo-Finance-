@@ -1,0 +1,58 @@
+// Firebase Security Rules para Firestore
+// Cole estas regras no Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para documentos de usuários
+    match /usuarios/{userId} {
+      // Usuário só pode acessar seus próprios dados
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Regras para subcoleções do usuário
+      match /{document=**} {
+        // Usuário só pode acessar suas próprias subcoleções
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Regras específicas para transações
+      match /transacoes/{transacaoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validação de dados para transações
+        allow create: if request.auth != null 
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['tipo', 'valor', 'nome', 'data', 'categoria'])
+          && request.resource.data.tipo in ['receita', 'despesa']
+          && request.resource.data.valor is number
+          && request.resource.data.nome is string
+          && request.resource.data.data is string
+          && request.resource.data.categoria is string;
+      }
+      
+      // Regras específicas para metas
+      match /metas/{metaId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validação de dados para metas
+        allow create: if request.auth != null 
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['nome', 'valorObjetivo', 'valorAtual', 'prazo'])
+          && request.resource.data.nome is string
+          && request.resource.data.valorObjetivo is number
+          && request.resource.data.valorAtual is number
+          && request.resource.data.prazo is string;
+      }
+      
+      // Regras específicas para configurações
+      match /configuracoes/{configId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Nega acesso a qualquer outro documento
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

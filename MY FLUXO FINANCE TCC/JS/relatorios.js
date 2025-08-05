@@ -1,20 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
-    authDomain: "my-fluxo-finance.firebaseapp.com",
-    projectId: "my-fluxo-finance",
-    storageBucket: "my-fluxo-finance.appspot.com",
-    messagingSenderId: "310977282920",
-    appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
-    measurementId: "G-SBWWBYKLQB"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Configuração do Firebase usando configuração central
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
 
 // Função para mostrar mensagens
 function showMessage(text, type) {

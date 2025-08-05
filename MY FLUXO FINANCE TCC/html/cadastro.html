@@ -6,95 +6,11 @@
     <title>Cadastre-se - My Fluxo Finance</title>
     <link rel="stylesheet" href="../CSS/stylesCadastro.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <!-- Firebase SDK v9+ (Modular) -->
-    <script type="module">
-        // Importe os módulos necessários
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
-    import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
-        authDomain: "my-fluxo-finance.firebaseapp.com",
-        projectId: "my-fluxo-finance",
-        storageBucket: "my-fluxo-finance.appspot.com",
-        messagingSenderId: "310977282920",
-        appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
-        measurementId: "G-SBWWBYKLQB"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    window.cadastrarUsuario = async (e) => {
-        e.preventDefault();
-            
-            const nome = document.getElementById('nome').value;
-            const cpf = document.getElementById('cpf').value;
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            const confirmarSenha = document.getElementById('confirmar-senha').value;
-            const telefone = document.getElementById('telefone').value;
-            
-            // Validação básica
-            if (senha !== confirmarSenha) {
-                mostrarErro("As senhas não coincidem!");
-                return;
-            }
-            
-            if (!document.getElementById('terms').checked) {
-                mostrarErro("Você deve aceitar os termos de serviço!");
-                return;
-            }
-
-             try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-            const user = userCredential.user;
-            
-            // Salva no Firestore usando o UID como ID do documento
-            await setDoc(doc(db, "usuarios", user.uid), {
-                nome: nome,
-                cpf: cpf,
-                telefone: telefone,
-                email: email,
-                dataCadastro: new Date()
-            });
-            
-            window.location.href = "dashboard.html";
-                
-            } catch (error) {
-                let mensagemErro;
-                switch(error.code) {
-                    case "auth/email-already-in-use":
-                        mensagemErro = "Este e-mail já está em uso.";
-                        break;
-                    case "auth/invalid-email":
-                        mensagemErro = "E-mail inválido.";
-                        break;
-                    case "auth/weak-password":
-                        mensagemErro = "Senha fraca (mínimo 6 caracteres).";
-                        break;
-                    default:
-                        mensagemErro = "Erro ao cadastrar: " + error.message;
-                }
-                mostrarErro(mensagemErro);
-            }
-        };
-
-        function mostrarErro(mensagem) {
-            const erroElement = document.getElementById('erro-cadastro');
-            erroElement.textContent = mensagem;
-            erroElement.style.display = 'block';
-            window.scrollTo(0, 0);
-        }
-    </script>
 </head>
 <body>
     <div class="cadastro-container">
         <div class="cadastro-header">
-            <img src="../images/MFF.jpg" alt="Logo My Fluxo Finance" class="logo" style="height: 60px; margin-bottom: 20px;">
+            <img src="../Images/MFF.jpg" alt="Logo My Fluxo Finance" class="logo" style="height: 60px; margin-bottom: 20px;">
             <h1>Crie sua conta</h1>
             <p>Comece a controlar suas finanças em poucos minutos</p>
         </div>
@@ -102,7 +18,7 @@
         <!-- Mensagem de erro (inicialmente oculta) -->
         <div id="erro-cadastro" class="mensagem-erro" style="display: none;"></div>
         
-        <form class="cadastro-form" onsubmit="cadastrarUsuario(event)">
+        <form class="cadastro-form" id="cadastroForm">
             <div class="input-row">
                 <div class="input-group">
                     <label for="nome"><i class="fas fa-user"></i> Nome completo</label>
@@ -206,5 +122,7 @@
             e.target.value = value;
         });
     </script>
+
+    <script type="module" src="../JS/cadastro.js"></script>
 </body>
 </html>

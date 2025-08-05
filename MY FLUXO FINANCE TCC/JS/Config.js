@@ -1,3 +1,6 @@
+// Importa o gerenciador de configurações
+import { configManager } from './config-manager.js';
+
 document.addEventListener('DOMContentLoaded', function () {
   const bgPicker = document.getElementById('bg-color-picker');
   const primaryPicker = document.getElementById('primary-color-picker');
@@ -11,9 +14,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const bgColors = ['#ffffff', '#f8f9fa', '#e9ecef', '#212529', '#f1f8e9', '#e3f2fd'];
   const primaryColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14'];
 
-  // faz o botoes de seleção dce cor
+  // Cria botões de seleção de cor
   function createColorOptions(container, colors, type) {
-    container.innerHTML = ''; // Limpa o container primeiro
+    if (!container) return;
+    
+    container.innerHTML = '';
     
     colors.forEach(color => {
       const btn = document.createElement('button');
@@ -22,150 +27,114 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.dataset.color = color;
       btn.title = color;
       
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.preventDefault();
         
-        // remove a classe 'active' de todos os botões do mesmo container
+        // Remove classe active de todos os botões do container
         container.querySelectorAll('.color-option').forEach(option => {
           option.classList.remove('active');
         });
         
-        // adiciona 'active' ao botão clicado
+        // Adiciona active ao botão clicado
         btn.classList.add('active');
         
-        // salva no localStorage
+        // Salva usando o gerenciador de configurações
         if (type === 'bg') {
-          localStorage.setItem('bgColor', color);
+          await configManager.updateConfig('bgColor', color);
         } else {
-          localStorage.setItem('primaryColor', color);
+          await configManager.updateConfig('primaryColor', color);
         }
-        
-        saveTheme();
       });
       
       container.appendChild(btn);
     });
   }
 
-  // salva o tema atual
-  function saveTheme() {
-    const theme = {
-      bgColor: localStorage.getItem('bgColor') || getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim() || '#white',
-      primaryColor: localStorage.getItem('primaryColor') || getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#0d6efd',
-      fontFamily: fontFamily.value,
-      fontSize: fontSize.value
-    };
-    
-    localStorage.setItem('siteTheme', JSON.stringify(theme));
-    
-    // atualiza outras abas
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'siteTheme',
-      newValue: JSON.stringify(theme)
-    }));
-    
-    // aplica na página atual
-    if (typeof applyThemeSettings === 'function') {
-      applyThemeSettings();
-    }
-  }
-
-  // vai restaura as seleções salvas
-  function restoreSelections() {
-    const savedTheme = localStorage.getItem('siteTheme');
-    
-    if (savedTheme) {
-      const theme = JSON.parse(savedTheme);
-      
-      //vai restaurar seleção de fonte
-      if (theme.fontFamily) {
-        fontFamily.value = theme.fontFamily;
-        preview.style.fontFamily = theme.fontFamily;
-      }
-      
-      // vai restaurar tamanho da fonte
-      if (theme.fontSize) {
-        fontSize.value = theme.fontSize;
-        preview.style.fontSize = theme.fontSize;
-      }
-      
-      // marca as cores selecionadas
-      if (theme.bgColor) {
-        markSelectedColor(bgPicker, theme.bgColor);
-      }
-      
-      if (theme.primaryColor) {
-        markSelectedColor(primaryPicker, theme.primaryColor);
-        customColor.value = theme.primaryColor;
-      }
-    }
-  }
-
-
+  // Marca cor selecionada
   function markSelectedColor(container, color) {
-    container.querySelectorAll('.color-option').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.dataset.color.toLowerCase() === color.toLowerCase()) {
-        btn.classList.add('active');
+    if (!container) return;
+    
+    container.querySelectorAll('.color-option').forEach(option => {
+      option.classList.remove('active');
+      if (option.dataset.color === color) {
+        option.classList.add('active');
       }
     });
   }
 
- 
-  fontFamily.addEventListener('change', () => {
-    preview.style.fontFamily = fontFamily.value;
-    saveTheme();
-  });
-
-  fontSize.addEventListener('change', () => {
-    preview.style.fontSize = fontSize.value;
-    saveTheme();
-  });
-
-  customColor.addEventListener('input', () => {
-    localStorage.setItem('primaryColor', customColor.value);
-    markSelectedColor(primaryPicker, customColor.value);
-    saveTheme();
-  });
-
- resetButton.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (confirm('Deseja resetar todas as configurações para os valores padrão?')) {
-    // vai limpar todo o localStorage relacionado ao tema
-    localStorage.removeItem('siteTheme');
-    localStorage.removeItem('bgColor');
-    localStorage.removeItem('primaryColor');
-    localStorage.removeItem('fontFamily');
-    localStorage.removeItem('fontSize');
+  // Restaura seleções salvas
+  function restoreSelections() {
+    const theme = configManager.getCurrentTheme();
     
-    // reseta tudo
-    fontFamily.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    fontSize.value = "16px";
-    preview.style.fontFamily = fontFamily.value;
-    preview.style.fontSize = fontSize.value;
+    // Restaura seleção de fonte
+    if (theme.fontFamily && fontFamily) {
+      fontFamily.value = theme.fontFamily;
+      if (preview) preview.style.fontFamily = theme.fontFamily;
+    }
     
-
-    bgPicker.querySelectorAll('.color-option').forEach(btn => btn.classList.remove('active'));
-    primaryPicker.querySelectorAll('.color-option').forEach(btn => btn.classList.remove('active'));
+    // Restaura tamanho da fonte
+    if (theme.fontSize && fontSize) {
+      fontSize.value = theme.fontSize;
+      if (preview) preview.style.fontSize = theme.fontSize;
+    }
     
-
-    customColor.value = '#ffffff';
+    // Marca as cores selecionadas
+    if (theme.bgColor && bgPicker) {
+      markSelectedColor(bgPicker, theme.bgColor);
+    }
     
-
-    document.documentElement.style.setProperty('--primary-color', '#0d6efd');
-    document.documentElement.style.setProperty('--bg-color', '#ffffff'); // Cor de fundo branca
-    
-
-    markSelectedColor(bgPicker, '#ffffff');
-    
-
-    saveTheme();
-    location.reload();
+    if (theme.primaryColor && primaryPicker) {
+      markSelectedColor(primaryPicker, theme.primaryColor);
+      if (customColor) customColor.value = theme.primaryColor;
+    }
   }
-});
 
-  // Inicia
+  // Event listeners para fonte
+  if (fontFamily) {
+    fontFamily.addEventListener('change', async () => {
+      if (preview) preview.style.fontFamily = fontFamily.value;
+      await configManager.updateConfig('fontFamily', fontFamily.value);
+    });
+  }
+
+  if (fontSize) {
+    fontSize.addEventListener('change', async () => {
+      if (preview) preview.style.fontSize = fontSize.value;
+      await configManager.updateConfig('fontSize', fontSize.value);
+    });
+  }
+
+  // Event listener para cor customizada
+  if (customColor) {
+    customColor.addEventListener('change', async (e) => {
+      await configManager.updateConfig('primaryColor', e.target.value);
+      if (primaryPicker) {
+        markSelectedColor(primaryPicker, e.target.value);
+      }
+    });
+  }
+
+  // Botão de reset
+  if (resetButton) {
+    resetButton.addEventListener('click', async () => {
+      if (confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
+        await configManager.resetToDefault();
+        restoreSelections();
+      }
+    });
+  }
+
+  // Inicialização
   createColorOptions(bgPicker, bgColors, 'bg');
   createColorOptions(primaryPicker, primaryColors, 'primary');
-  restoreSelections();
+
+  // Escuta mudanças de tema
+  window.addEventListener('themeChanged', () => {
+    restoreSelections();
+  });
+
+  // Carrega configurações iniciais
+  setTimeout(() => {
+    restoreSelections();
+  }, 100);
 });

@@ -1,17 +1,17 @@
-// Configuração do Firebase (substitua com suas credenciais)
-const firebaseConfig = {
-  apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
-            authDomain: "my-fluxo-finance.firebaseapp.com",
-            projectId: "my-fluxo-finance",
-            storageBucket: "my-fluxo-finance.appspot.com",
-            messagingSenderId: "310977282920",
-            appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
-            measurementId: "G-SBWWBYKLQB"
-};
-
-// Inicialização do Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Configuração do Firebase usando configuração central
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+import { 
+    collection, 
+    addDoc, 
+    getDocs, 
+    deleteDoc, 
+    doc, 
+    updateDoc,
+    serverTimestamp,
+    orderBy,
+    query
+} from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
 
 // Elementos DOM
 const btnNovaMeta = document.getElementById('btnNovaMeta');
@@ -36,14 +36,18 @@ const calcularDiasRestantes = (prazo) => {
 };
 
 // Abrir modal
-btnNovaMeta.addEventListener('click', () => {
-  modal.style.display = 'block';
-});
+if (btnNovaMeta) {
+  btnNovaMeta.addEventListener('click', () => {
+    modal.style.display = 'block';
+  });
+}
 
 // Fechar modal
-closeBtn.addEventListener('click', () => {
-  modal.style.display = 'none';
-});
+if (closeBtn) {
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+}
 
 window.addEventListener('click', (e) => {
   if (e.target === modal) {
@@ -51,18 +55,31 @@ window.addEventListener('click', (e) => {
   }
 });
 
-// Renderizar metas
-const renderizarMetas = () => {
+// Renderizar metas do usuário logado
+const renderizarMetas = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
   listaMetas.innerHTML = '';
   
-  db.collection('metas').orderBy('prazo').get().then((querySnapshot) => {
+  try {
+    const q = query(
+      collection(db, "usuarios", user.uid, "metas"), 
+      orderBy('prazo')
+    );
+    const querySnapshot = await getDocs(q);
+    
     if (querySnapshot.empty) {
       listaMetas.innerHTML = '<p class="sem-metas">Nenhuma meta cadastrada ainda.</p>';
       return;
     }
 
-    querySnapshot.forEach((doc) => {
-      const meta = doc.data();
+    querySnapshot.forEach((docSnap) => {
+      const meta = docSnap.data();
+      const metaId = docSnap.id;
       const progresso = Math.min((meta.valorAtual / meta.valorObjetivo) * 100, 100);
       const diasRestantes = calcularDiasRestantes(meta.prazo);
       const prazoFormatado = new Date(meta.prazo).toLocaleDateString('pt-BR');
@@ -102,51 +119,95 @@ const renderizarMetas = () => {
           </div>
           
           <div class="meta-actions">
-            <button class="btn-excluir" onclick="excluirMeta('${doc.id}')">
-              <i class="fas fa-trash-alt"></i> Excluir
+            <button class="btn-edit" onclick="editarMeta('${metaId}', '${meta.nome}', ${meta.valorObjetivo}, ${meta.valorAtual}, '${meta.prazo}')">
+              <i class="fas fa-edit"></i> Editar
+            </button>
+            <button class="btn-delete" onclick="excluirMeta('${metaId}')">
+              <i class="fas fa-trash"></i> Excluir
             </button>
           </div>
         </div>
       `;
     });
-  });
+  } catch (error) {
+    console.error("Erro ao carregar metas:", error);
+    listaMetas.innerHTML = '<p class="erro">Erro ao carregar metas. Tente novamente.</p>';
+  }
 };
 
-// Adicionar nova meta
-formMeta.addEventListener('submit', (e) => {
-  e.preventDefault();
-  
-  const novaMeta = {
-    nome: document.getElementById('metaNome').value.trim(),
-    valorObjetivo: parseFloat(document.getElementById('metaValor').value),
-    valorAtual: parseFloat(document.getElementById('metaAtual').value),
-    prazo: document.getElementById('metaPrazo').value,
-    criadoEm: new Date()
-  };
-
-  // Validações
-  if (novaMeta.valorAtual > novaMeta.valorObjetivo) {
-    alert('O valor atual não pode ser maior que o objetivo!');
-    return;
-  }
-
-  db.collection('metas').add(novaMeta)
-    .then(() => {
+// Salvar nova meta
+if (formMeta) {
+  formMeta.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const user = auth.currentUser;
+    if (!user) {
+      alert('Usuário não autenticado');
+      return;
+    }
+    
+    const nome = document.getElementById('nomeMeta').value;
+    const valorObjetivo = parseFloat(document.getElementById('valorObjetivo').value);
+    const valorAtual = parseFloat(document.getElementById('valorAtual').value) || 0;
+    const prazo = document.getElementById('prazoMeta').value;
+    
+    if (!nome || !valorObjetivo || !prazo) {
+      alert('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+    
+    const novaMeta = {
+      nome,
+      valorObjetivo,
+      valorAtual,
+      prazo,
+      createdAt: serverTimestamp()
+    };
+    
+    try {
+      await addDoc(collection(db, "usuarios", user.uid, "metas"), novaMeta);
       modal.style.display = 'none';
       formMeta.reset();
       renderizarMetas();
-    })
-    .catch((error) => {
+    } catch (error) {
+      console.error("Erro ao salvar meta:", error);
       alert('Erro ao salvar meta: ' + error.message);
-    });
-});
+    }
+  });
+}
 
 // Excluir meta
-window.excluirMeta = (id) => {
+window.excluirMeta = async (metaId) => {
+  const user = auth.currentUser;
+  if (!user) return;
+  
   if (confirm('Tem certeza que deseja excluir esta meta permanentemente?')) {
-    db.collection('metas').doc(id).delete().then(renderizarMetas);
+    try {
+      await deleteDoc(doc(db, "usuarios", user.uid, "metas", metaId));
+      renderizarMetas();
+    } catch (error) {
+      console.error("Erro ao excluir meta:", error);
+      alert('Erro ao excluir meta');
+    }
   }
 };
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', renderizarMetas);
+// Editar meta (função placeholder)
+window.editarMeta = (metaId, nome, valorObjetivo, valorAtual, prazo) => {
+  // Implementar funcionalidade de edição futuramente
+  console.log('Editar meta:', metaId, nome, valorObjetivo, valorAtual, prazo);
+};
+
+// Verificação de autenticação e inicialização
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    renderizarMetas();
+  } else {
+    window.location.href = 'login.html';
+  }
+});
+
+// Inicialização quando DOM estiver carregado
+document.addEventListener('DOMContentLoaded', () => {
+  // A renderização será feita pelo onAuthStateChanged
+});

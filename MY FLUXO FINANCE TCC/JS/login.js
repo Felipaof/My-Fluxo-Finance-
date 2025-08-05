@@ -1,30 +1,96 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-import {getDatabase, ref, set, get, child} from "https://www.gstatic.com/firebasejs/9.6.0/firebase-database.js";
+// Importa configuração central do Firebase
+import { auth, db } from './firebase-config.js';
+import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
-    authDomain: "my-fluxo-finance.firebaseapp.com",
-    projectId: "my-fluxo-finance",
-    storageBucket: "my-fluxo-finance.appspot.com",
-    messagingSenderId: "310977282920",
-    appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
-    measurementId: "G-SBWWBYKLQB"
-};
-
-const app = initializeApp(firebaseConfig);
-
-    const db = getDatabase(app);
-        document.getElementById("submit").addEventListener('click',function(e){
-        e.preventDefault();
-
-        set(ref(db, 'email/' + document.getElementById("email").value),
-        {
-
-            Usuário: document.getElementById("email").value,
-            Senha: document.getElementById("password").value,
-
-        });
+// Função de login usando Firebase Auth
+async function fazerLogin(email, senha) {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+        const user = userCredential.user;
         
-            alert("Login Efetuado com sucesso!");
+        // Verifica se usuário tem perfil no Firestore
+        const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+        
+        if (!userDoc.exists()) {
+            throw new Error("Perfil de usuário não encontrado");
+        }
+        
+        // Limpa mensagem de erro se existir
+        const erroLogin = document.getElementById('erro-login');
+        if (erroLogin) {
+            erroLogin.style.display = 'none';
+        }
+        
+        window.location.href = "dashboard.html";
+        
+    } catch (error) {
+        console.error("Erro de login:", error);
+        let mensagemErro;
+        switch(error.code) {
+            case "auth/invalid-email": 
+                mensagemErro = "E-mail inválido."; 
+                break;
+            case "auth/user-disabled": 
+                mensagemErro = "Conta desativada."; 
+                break;
+            case "auth/user-not-found": 
+                mensagemErro = "Usuário não encontrado."; 
+                break;
+            case "auth/wrong-password": 
+                mensagemErro = "Senha incorreta."; 
+                break;
+            case "auth/invalid-credential":
+                mensagemErro = "E-mail ou senha incorretos.";
+                break;
+            default: 
+                mensagemErro = "Erro ao fazer login. Tente novamente.";
+        }
+        
+        const erroLogin = document.getElementById('erro-login');
+        if (erroLogin) {
+            erroLogin.textContent = mensagemErro;
+            erroLogin.style.display = 'block';
+        } else {
+            alert(mensagemErro);
+        }
+    }
+}
 
-    });
+// Event listener para o formulário de login
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById("email").value;
+            const senha = document.getElementById("password").value;
+            
+            if (!email || !senha) {
+                const erroLogin = document.getElementById('erro-login');
+                if (erroLogin) {
+                    erroLogin.textContent = "Por favor, preencha todos os campos.";
+                    erroLogin.style.display = 'block';
+                } else {
+                    alert("Por favor, preencha todos os campos.");
+                }
+                return;
+            }
+            
+            fazerLogin(email, senha);
+        });
+    }
+});
+
+// Verifica se usuário já está logado
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        getDoc(doc(db, "usuarios", user.uid)).then((doc) => {
+            if (doc.exists()) {
+                window.location.href = "dashboard.html";
+            }
+        });
+    }
+});

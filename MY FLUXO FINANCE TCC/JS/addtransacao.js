@@ -1,23 +1,9 @@
-// Configuração do Firebase (usando a mesma versão em todos os arquivos)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
+// Configuração do Firebase usando configuração central
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCU_jlDrdbWZ780KdBmBMregGqoVFhw2Ag",
-    authDomain: "my-fluxo-finance.firebaseapp.com",
-    projectId: "my-fluxo-finance",
-    storageBucket: "my-fluxo-finance.appspot.com",
-    messagingSenderId: "310977282920",
-    appId: "1:310977282920:web:d003d14bf72f508da0ccdd",
-    measurementId: "G-SBWWBYKLQB"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Função para salvar transação
+// Função para salvar transação na subcoleção do usuário
 async function saveTransaction(transaction) {
     const user = auth.currentUser;
     
@@ -30,37 +16,38 @@ async function saveTransaction(transaction) {
         // Salva na subcoleção 'transacoes' do usuário no Firestore
         await addDoc(collection(db, "usuarios", user.uid, "transacoes"), {
             ...transaction,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
         showMessage('Transação salva com sucesso!', 'success');
         document.getElementById('transactionForm').reset();
+        document.getElementById('transactionDate').valueAsDate = new Date();
     } catch (error) {
         console.error("Erro ao salvar:", error);
         showMessage('Erro ao salvar transação: ' + error.message, 'error');
     }
 }
 
-    // Adiciona informações adicionais à transação
-    transaction.userId = user.uid;
-    transaction.dataRegistro = new Date().toISOString();
+// Função para exibir mensagens
+function showMessage(text, type) {
+    const messageDiv = document.getElementById('message');
+    if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.className = 'message ' + type;
+        messageDiv.style.display = 'block';
+        
+        // Esconde a mensagem após 5 segundos
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    } else {
+        // Fallback para alert se não houver div de mensagem
+        alert(text);
+    }
+}
 
-    const userTransactionsRef = database.ref(`users/${user.uid}/transacoes`);
-    
-    userTransactionsRef.push(transaction)
-        .then(() => {
-            showMessage('Transação salva com sucesso!', 'success');
-            document.getElementById('transactionForm').reset();
-            document.getElementById('transactionDate').valueAsDate = new Date();
-        })
-        .catch((error) => {
-            console.error('Erro ao salvar transação:', error);
-            showMessage('Erro ao salvar transação. Tente novamente.', 'error');
-        });
-
-// Adicione um observador de autenticação no DOMContentLoaded
-auth.onAuthStateChanged((user) => {
+// Verificação de autenticação
+onAuthStateChanged(auth, (user) => {
     if (!user) {
-        // Redireciona para login se não estiver autenticado
         window.location.href = 'login.html';
     }
 });
@@ -68,92 +55,143 @@ auth.onAuthStateChanged((user) => {
 // Função principal quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
     // Configura a data atual como padrão
-    document.getElementById('transactionDate').valueAsDate = new Date();
+    const transactionDate = document.getElementById('transactionDate');
+    if (transactionDate) {
+        transactionDate.valueAsDate = new Date();
+    }
     
     // Configura o dropdown do usuário
     const userMenu = document.querySelector('.user-menu');
     const dropdownMenu = document.querySelector('.dropdown-menu');
     
-    userMenu.addEventListener('click', function() {
-        dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
-    });
-    
-    // Fecha o dropdown quando clicar fora
-    document.addEventListener('click', function(event) {
-        if (!userMenu.contains(event.target)) {
-            dropdownMenu.style.display = 'none';
-        }
-    });
+    if (userMenu && dropdownMenu) {
+        userMenu.addEventListener('click', function() {
+            dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Fecha o dropdown quando clicar fora
+        document.addEventListener('click', function(event) {
+            if (!userMenu.contains(event.target)) {
+                dropdownMenu.style.display = 'none';
+            }
+        });
+    }
     
     // Configura o envio do formulário
     const transactionForm = document.getElementById('transactionForm');
-    const messageDiv = document.getElementById('message');
     
-    transactionForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Coleta os dados do formulário
+            const transactionType = document.querySelector('input[name="transactionType"]:checked')?.value;
+            const transactionName = document.getElementById('transactionName')?.value;
+            const transactionValue = parseFloat(document.getElementById('transactionValue')?.value);
+            const transactionDate = document.getElementById('transactionDate')?.value;
+            const category = document.getElementById('category')?.value;
+            
+            // Validação
+            if (!transactionType || !transactionName || !transactionValue || !transactionDate || !category) {
+                showMessage('Por favor, preencha todos os campos.', 'error');
+                return;
+            }
+            
+            if (isNaN(transactionValue) || transactionValue <= 0) {
+                showMessage('Por favor, insira um valor válido maior que zero.', 'error');
+                return;
+            }
+            
+            // Valor negativo para despesas
+            const finalValue = transactionType === 'despesa' ? -Math.abs(transactionValue) : Math.abs(transactionValue);
+            
+            const transaction = {
+                tipo: transactionType,
+                valor: finalValue,
+                nome: transactionName.trim(),
+                data: transactionDate,
+                categoria: category
+            };
+            
+            // Salva no Firebase
+            saveTransaction(transaction);
+        });
+    }
+    
+    // Função para formatar valor monetário no campo de input
+    const transactionValueInput = document.getElementById('transactionValue');
+    if (transactionValueInput) {
+        transactionValueInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d.,]/g, '');
+            // Permite apenas números, vírgula e ponto
+            value = value.replace(',', '.');
+            e.target.value = value;
+        });
+    }
+    
+    // Adiciona máscara de moeda ao perder o foco
+    if (transactionValueInput) {
+        transactionValueInput.addEventListener('blur', function(e) {
+            const value = parseFloat(e.target.value);
+            if (!isNaN(value)) {
+                e.target.value = value.toFixed(2);
+            }
+        });
+    }
+    
+    // Configura categorias baseadas no tipo de transação
+    const typeRadios = document.querySelectorAll('input[name="transactionType"]');
+    const categorySelect = document.getElementById('category');
+    
+    if (typeRadios.length > 0 && categorySelect) {
+        typeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                updateCategoriesBasedOnType(this.value, categorySelect);
+            });
+        });
         
-        // Obtém os valores do formulário
-        const transactionType = document.getElementById('transactionType').value;
-        const transactionValue = parseFloat(document.getElementById('transactionValue').value);
-        const transactionName = document.getElementById('transactionName').value.trim();
-        const transactionDate = document.getElementById('transactionDate').value;
-        const category = document.querySelector('input[name="category"]:checked').value;
-        
-        // Validações adicionais
-        if (transactionType === '') {
-            showMessage('Por favor, selecione o tipo de transação', 'error');
-            return;
+        // Define categorias iniciais
+        const checkedType = document.querySelector('input[name="transactionType"]:checked');
+        if (checkedType) {
+            updateCategoriesBasedOnType(checkedType.value, categorySelect);
         }
-        
-        if (isNaN(transactionValue)) {
-            showMessage('Por favor, insira um valor válido', 'error');
-            return;
-        }
-        
-        // Ajusta o valor para negativo se for despesa
-        const finalValue = transactionType === 'despesa' ? -Math.abs(transactionValue) : Math.abs(transactionValue);
-        
-        // Cria o objeto da transação
-        const transaction = {
-            tipo: transactionType,
-            valor: finalValue,
-            nome: transactionName,
-            data: transactionDate,
-            categoria: category,
-            dataRegistro: new Date().toISOString()
-        };
-        
-        // Salva no Firebase
-        saveTransaction(transaction);
-    });
+    }
 });
 
-function saveTransaction(transaction) {
-    const messageDiv = document.getElementById('message');
+// Função para atualizar categorias baseadas no tipo de transação
+function updateCategoriesBasedOnType(type, categorySelect) {
+    const receitaCategories = [
+        'Salário',
+        'Freelance',
+        'Vendas',
+        'Investimentos',
+        'Bonificação',
+        'Presente',
+        'Outros'
+    ];
     
-    // Referência para as transações no Firebase
-    const transactionsRef = database.ref('transacoes');
+    const despesaCategories = [
+        'Alimentação',
+        'Transporte',
+        'Moradia',
+        'Saúde',
+        'Educação',
+        'Lazer',
+        'Compras',
+        'Contas',
+        'Outros'
+    ];
     
-    // Adiciona a nova transação
-    transactionsRef.push(transaction)
-        .then(() => {
-            showMessage('Transação salva com sucesso!', 'success');
-            document.getElementById('transactionForm').reset();
-            document.getElementById('transactionDate').valueAsDate = new Date();
-        })
-        .catch((error) => {
-            console.error('Erro ao salvar transação:', error);
-            showMessage('Erro ao salvar transação. Tente novamente.', 'error');
-        });
-}
-
-function showMessage(text, type) {
-    const messageDiv = document.getElementById('message');
-    messageDiv.textContent = text;
-    messageDiv.className = 'message ' + type;
+    const categories = type === 'receita' ? receitaCategories : despesaCategories;
     
-    // Esconde a mensagem após 5 segundos
-    setTimeout(() => {
-        messageDiv.style.display = 'none';
-    }, 5000);
+    // Limpa as opções existentes
+    categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+    
+    // Adiciona as novas opções
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+    });
 }
