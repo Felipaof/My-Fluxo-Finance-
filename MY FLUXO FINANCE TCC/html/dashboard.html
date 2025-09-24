@@ -225,20 +225,21 @@
                 dropdownMenu.style.display = 'none';
             }
         });
-    </script>
-    <script>// Adicione no dashboard para carregar dados do perfil
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        database.ref(`users/${user.uid}/perfil`).once('value').then((snapshot) => {
-            const perfil = snapshot.val();
-            // Atualize a UI com os dados do perfil
-            document.querySelector('.user-name').textContent = perfil.nome || user.email;
-            if (perfil.avatar) {
-                document.querySelector('.user-avatar').src = perfil.avatar;
+
+        // Adicione no dashboard para carregar dados do perfil
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                database.ref(`users/${user.uid}/perfil`).once('value').then((snapshot) => {
+                    const perfil = snapshot.val();
+                    // Atualize a UI com os dados do perfil
+                    document.querySelector('.user-name').textContent = perfil.nome || user.email;
+                    if (perfil.avatar) {
+                        document.querySelector('.user-avatar').src = perfil.avatar;
+                    }
+                });
             }
         });
-    }
-});</script>
+    </script>
 
     <script type="module"  src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script  type="module" src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>

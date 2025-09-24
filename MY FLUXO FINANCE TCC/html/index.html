@@ -62,5 +62,23 @@
 <img src="rodapé.png" alt="Rodapé decorativo" class="rodape-img" />
 <p>&copy; 2025 My Fluxo Finance. Todos os direitos reservados.</p>
 </footer>
+
+<!-- Script para carregar dados do perfil -->
+<script>
+// Adicione no dashboard para carregar dados do perfil
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        database.ref(`users/${user.uid}/perfil`).once('value').then((snapshot) => {
+            const perfil = snapshot.val();
+            // Atualize a UI com os dados do perfil
+            document.querySelector('.user-name').textContent = perfil.nome || user.email;
+            if (perfil.avatar) {
+                document.querySelector('.user-avatar').src = perfil.avatar;
+            }
+        });
+    }
+});
+</script>
+<script type="module" src="../JS/dashboard.js"></script>
 </body>
 </html>
