@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "TCC API - Collection",
+    "_postman_id": "tcc-api-collection-0001",
+    "description": "Coleção para testar todas as rotas da API (auth, categorias, transacoes, metas). Altere {{baseUrl}} se necessário.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "usuario_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "transacao_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "meta_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register - Criar usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@example.com\",\n  \"nome\": \"Teste\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] }
+          }
+        },
+        {
+          "name": "Login - Autenticar",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@example.com\",\n  \"senha\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "Listar categorias",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/categorias", "host": ["{{baseUrl}}"], "path": ["categorias"] }
+          }
+        },
+        {
+          "name": "Criar categoria",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nome\": \"Nova Categoria\" }"
+            },
+            "url": { "raw": "{{baseUrl}}/categorias", "host": ["{{baseUrl}}"], "path": ["categorias"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transacoes",
+      "item": [
+        {
+          "name": "Listar transações por usuário",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/transacoes/{{usuario_id}}", "host": ["{{baseUrl}}"], "path": ["transacoes","{{usuario_id}}"] }
+          }
+        },
+        {
+          "name": "Criar transação",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": 1,\n  \"tipo_entrada\": \"saida\",\n  \"valor\": 50.5,\n  \"id_categoria\": 2,\n  \"id_meta\": null,\n  \"data_criacao\": \"2025-10-09T12:00:00Z\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/transacoes", "host": ["{{baseUrl}}"], "path": ["transacoes"] }
+          }
+        },
+        {
+          "name": "Atualizar transação",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"valor\": 60.0, \"tipo_entrada\": \"saida\" }"
+            },
+            "url": { "raw": "{{baseUrl}}/transacoes/{{transacao_id}}", "host": ["{{baseUrl}}"], "path": ["transacoes","{{transacao_id}}"] }
+          }
+        },
+        {
+          "name": "Deletar transação",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/transacoes/{{transacao_id}}", "host": ["{{baseUrl}}"], "path": ["transacoes","{{transacao_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Metas",
+      "item": [
+        {
+          "name": "Listar metas por usuário",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/metas/{{usuario_id}}", "host": ["{{baseUrl}}"], "path": ["metas","{{usuario_id}}"] }
+          }
+        },
+        {
+          "name": "Criar meta",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": 1,\n  \"nome\": \"Viagem\",\n  \"valor\": 2000,\n  \"foi_batida\": false,\n  \"data_inicio\": \"2025-10-01\",\n  \"data_final\": \"2026-03-01\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/metas", "host": ["{{baseUrl}}"], "path": ["metas"] }
+          }
+        },
+        {
+          "name": "Atualizar meta",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nome\": \"Viagem Europa\", \"valor\": 2500 }"
+            },
+            "url": { "raw": "{{baseUrl}}/metas/{{meta_id}}", "host": ["{{baseUrl}}"], "path": ["metas","{{meta_id}}"] }
+          }
+        },
+        {
+          "name": "Toggle (marcar/desmarcar) meta",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/metas/{{meta_id}}/toggle", "host": ["{{baseUrl}}"], "path": ["metas","{{meta_id}}","toggle"] }
+          }
+        },
+        {
+          "name": "Deletar meta",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/metas/{{meta_id}}", "host": ["{{baseUrl}}"], "path": ["metas","{{meta_id}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}

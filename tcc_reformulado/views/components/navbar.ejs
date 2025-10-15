@@ -1,0 +1,34 @@
+<nav class="navbar">
+  <div class="navbar-container">
+    <div class="navbar-brand">
+      <h2>FinanceFlow</h2>
+    </div>
+    
+    <div class="navbar-menu">
+      <div class="navbar-user">
+        <span class="user-welcome">Olá, <%= user.nome %>!</span>
+        <div class="user-dropdown">
+          <button class="user-button" id="user-menu-btn">
+            <div class="user-avatar">
+              <%= user.nome.charAt(0).toUpperCase() %>
+            </div>
+            <i class="dropdown-arrow">▼</i>
+          </button>
+          
+          <div class="dropdown-menu" id="user-dropdown">
+            <a href="/perfil" class="dropdown-item">
+              <i>👤</i> Meu Perfil
+            </a>
+            <a href="/configuracoes" class="dropdown-item">
+              <i>⚙️</i> Configurações
+            </a>
+            <hr class="dropdown-divider">
+            <button class="dropdown-item logout-btn" onclick="logout()">
+              <i>🚪</i> Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
