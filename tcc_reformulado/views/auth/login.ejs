@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="<%= pageClass %>">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Bem-vindo de volta!</h1>
+                <p>Entre na sua conta para continuar</p>
+            </div>
+
+            <!-- Área para mostrar mensagens de erro/sucesso -->
+            <div id="message-container" class="message-container hidden"></div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required 
+                        placeholder="Digite seu e-mail"
+                    >
+                    <div class="error-message" id="email-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input 
+                        type="password" 
+                        id="senha" 
+                        name="senha" 
+                        required 
+                        placeholder="Digite sua senha"
+                    >
+                    <div class="error-message" id="senha-error"></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="login-btn">
+                    <span class="btn-text">Entrar</span>
+                    <span class="btn-loading hidden">Entrando...</span>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Não tem uma conta? <a href="/register">Cadastre-se</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+</body>
+</html>
