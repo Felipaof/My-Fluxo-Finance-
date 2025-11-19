@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <script src="/js/config-loader.js"></script>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/relatorios.css">
+</head>
+<body class="<%= pageClass %>">
+  <%- include('components/navbar', { user: user }) %>
+  
+  <div class="dashboard-container">
+    <%- include('components/sidebar', { activeMenu: 'relatorios' }) %>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Relatórios</h1>
+        <p>Análise detalhada das suas finanças</p>
+        <div class="header-actions">
+          <button class="btn-export" onclick="exportarRelatorio()">
+            Exportar Dados
+          </button>
+          <!-- <button class="btn-print" onclick="imprimirRelatorio()">
+            <i>🖨️</i> Imprimir
+          </button> -->
+        </div>
+      </div>
+
+      <!-- Filtros de Período -->
+      <div class="filters-section">
+        <div class="filters-group">
+          <h3>Período de Análise</h3>
+          <div class="period-buttons">
+            <button class="period-btn active" data-period="mes" onclick="selecionarPeriodo('mes')">
+              Este Mês
+            </button>
+            <button class="period-btn" data-period="trimestre" onclick="selecionarPeriodo('trimestre')">
+              Trimestre
+            </button>
+            <button class="period-btn" data-period="ano" onclick="selecionarPeriodo('ano')">
+              Este Ano
+            </button>
+            <button class="period-btn" data-period="personalizado" onclick="selecionarPeriodo('personalizado')">
+              Personalizado
+            </button>
+          </div>
+          
+          <div class="custom-date-range" id="custom-date-range" style="display: none;">
+            <input type="date" id="data-inicio" class="filter-input" placeholder="Data início">
+            <input type="date" id="data-fim" class="filter-input" placeholder="Data fim">
+            <button class="btn-filter" onclick="aplicarFiltroPersonalizado()">
+              Aplicar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo Geral -->
+      <div class="report-section">
+        <h2>Resumo Financeiro</h2>
+        <div class="stats-grid">
+          <div class="stat-card receitas">
+            <div class="stat-icon"></div>
+            <div class="stat-info">
+              <h3>Total de Receitas</h3>
+              <p class="stat-value" id="total-receitas">R$ 0,00</p>
+              <span class="stat-count" id="count-receitas">0 transações</span>
+            </div>
+          </div>
+
+          <div class="stat-card despesas">
+            <div class="stat-icon"></div>
+            <div class="stat-info">
+              <h3>Total de Despesas</h3>
+              <p class="stat-value" id="total-despesas">R$ 0,00</p>
+              <span class="stat-count" id="count-despesas">0 transações</span>
+            </div>
+          </div>
+
+          <div class="stat-card saldo">
+            <div class="stat-icon"></div>
+            <div class="stat-info">
+              <h3>Saldo Líquido</h3>
+              <p class="stat-value" id="saldo-liquido">R$ 0,00</p>
+              <span class="stat-change" id="saldo-status">Positivo</span>
+            </div>
+          </div>
+
+          <div class="stat-card transacoes">
+            <div class="stat-icon"></div>
+            <div class="stat-info">
+              <h3>Total de Transações</h3>
+              <p class="stat-value" id="total-transacoes">0</p>
+              <span class="stat-count">no período</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos e Análises -->
+      <div class="reports-grid">
+        <!-- Gráfico de Receitas vs Despesas -->
+        <div class="report-card">
+          <div class="report-header">
+            <h3>Receitas vs Despesas</h3>
+            <div class="report-period" id="grafico-periodo">Este mês</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-receitas-despesas"></canvas>
+          </div>
+        </div>
+
+        <!-- Distribuição por Categorias -->
+        <div class="report-card">
+          <div class="report-header">
+            <h3>Gastos por Categoria</h3>
+            <select id="categoria-tipo" class="report-select" onchange="atualizarGraficoCategoria()">
+              <option value="despesas">Despesas</option>
+              <option value="receitas">Receitas</option>
+            </select>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-categorias"></canvas>
+          </div>
+        </div>
+
+        <!-- Evolução de Receitas -->
+        <div class="report-card">
+          <div class="report-header">
+            <h3>Evolução de Receitas</h3>
+            <div class="chart-legend">
+              <span class="legend-item receitas">
+                <span class="legend-color"></span> Receitas ao longo do tempo
+              </span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-receitas-linha"></canvas>
+          </div>
+        </div>
+
+        <!-- Evolução de Despesas -->
+        <div class="report-card">
+          <div class="report-header">
+            <h3>Evolução de Despesas</h3>
+            <div class="chart-legend">
+              <span class="legend-item despesas">
+                <span class="legend-color"></span> Despesas ao longo do tempo
+              </span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-despesas-linha"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Relatório de Metas -->
+      <div class="report-section">
+        <h2>Relatório de Metas</h2>
+        <div class="metas-resumo">
+          <div class="metas-stats">
+            <div class="meta-stat">
+              <span class="meta-number" id="metas-ativas">0</span>
+              <span class="meta-label">Metas Ativas</span>
+            </div>
+            <div class="meta-stat">
+              <span class="meta-number" id="metas-concluidas">0</span>
+              <span class="meta-label">Concluídas</span>
+            </div>
+            <div class="meta-stat">
+              <span class="meta-number" id="metas-vencidas">0</span>
+              <span class="meta-label">Vencidas</span>
+            </div>
+            <div class="meta-stat">
+              <span class="meta-number" id="progresso-geral">0%</span>
+              <span class="meta-label">Progresso Geral</span>
+            </div>
+          </div>
+          
+          <div class="metas-valor">
+            <div class="valor-item">
+              <span class="valor-label">Total em Metas:</span>
+              <span class="valor-amount" id="valor-total-metas">R$ 0,00</span>
+            </div>
+            <div class="valor-item">
+              <span class="valor-label">Valor Economizado:</span>
+              <span class="valor-amount" id="valor-economizado">R$ 0,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Análise por Categorias -->
+      <div class="report-section">
+        <h2>Análise por Categorias</h2>
+        <div class="categorias-table-container">
+          <table class="categorias-table" id="categorias-table">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Receitas</th>
+                <th>Despesas</th>
+                <th>Saldo</th>
+                <th>Transações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dados serão carregados via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Últimas Transações -->
+      <div class="report-section">
+        <h2>Últimas Transações</h2>
+        <div class="transacoes-resumo" id="transacoes-resumo">
+          <!-- Transações serão carregadas via JavaScript -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loading-relatorios">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Gerando relatórios...</p>
+    </div>
+  </div>
+
+  <!-- Modal de Exportação -->
+  <div class="modal-overlay" id="export-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Exportar Dados</h3>
+        <button class="modal-close" onclick="fecharModalExport()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="export-options">
+          <h4>Tipo de Dados:</h4>
+          <label class="export-option">
+            <input type="radio" name="export-tipo" value="transacoes" checked>
+            <span>Transações</span>
+          </label>
+          <label class="export-option">
+            <input type="radio" name="export-tipo" value="metas">
+            <span>Metas</span>
+          </label>
+          
+          <h4>Formato:</h4>
+          <label class="export-option">
+            <input type="radio" name="export-formato" value="csv" checked>
+            <span>CSV (Excel)</span>
+          </label>
+          <label class="export-option">
+            <input type="radio" name="export-formato" value="json">
+            <span>JSON</span>
+          </label>
+          
+          <div class="export-period">
+            <h4>Período:</h4>
+            <select id="export-period" class="export-select">
+              <option value="atual">Período Atual</option>
+              <option value="mes">Este Mês</option>
+              <option value="ano">Este Ano</option>
+              <option value="todos">Todos os Dados</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModalExport()">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarExportacao()">Exportar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/relatorios.js"></script>
+</body>
+</html>

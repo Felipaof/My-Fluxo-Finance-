@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <script src="/js/config-loader.js"></script>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/metas.css">
+</head>
+<body class="<%= pageClass %>">
+  <%- include('components/navbar', { user: user }) %>
+  
+  <div class="dashboard-container">
+    <%- include('components/sidebar', { activeMenu: 'metas' }) %>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Minhas Metas</h1>
+        <p>Defina e acompanhe seus objetivos financeiros</p>
+        <button class="btn-add-meta" onclick="openMetaModal()">
+          Nova Meta
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filters-section">
+        <div class="filters-group">
+          <select id="filter-status" class="filter-select">
+            <option value="">Todos os status</option>
+            <option value="ativa">Ativas</option>
+            <option value="concluida">Concluídas</option>
+            <option value="vencida">Vencidas</option>
+          </select>
+          
+          <input type="date" id="filter-data-inicio" class="filter-input" placeholder="Data início">
+          <input type="date" id="filter-data-fim" class="filter-input" placeholder="Data fim">
+          
+          <button class="btn-filter" onclick="aplicarFiltros()">
+            Filtrar
+          </button>
+          
+          <button class="btn-clear-filters" onclick="limparFiltros()">
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo -->
+      <div class="stats-grid">
+        <div class="stat-card metas-ativas">
+          <div class="stat-icon"></div>
+          <div class="stat-info">
+            <h3>Metas Ativas</h3>
+            <p class="stat-value" id="total-metas-ativas">0</p>
+            <span class="stat-count" id="valor-metas-ativas">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="stat-card metas-concluidas">
+          <div class="stat-icon"></div>
+          <div class="stat-info">
+            <h3>Metas Concluídas</h3>
+            <p class="stat-value" id="total-metas-concluidas">0</p>
+            <span class="stat-count" id="valor-metas-concluidas">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="stat-card total-economias">
+          <div class="stat-icon"></div>
+          <div class="stat-info">
+            <h3>Total em Metas</h3>
+            <p class="stat-value" id="total-valor-metas">R$ 0,00</p>
+            <span class="stat-count" id="count-total-metas">0 metas</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Metas -->
+      <div class="dashboard-section">
+        <div class="section-header">
+          <h2>Suas metas</h2>
+          <div class="section-actions">
+            <button class="btn-export" onclick="exportarMetas()">
+              Exportar
+            </button>
+          </div>
+        </div>
+        
+        <div class="metas-container">
+          <div class="metas-grid" id="metas-grid">
+          </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading-container" id="loading-metas">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Carregando metas...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal para Nova/Editar Meta -->
+  <div class="modal-overlay" id="meta-modal" tabindex="-1" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Nova Meta</h3>
+        <button class="modal-close" onclick="closeMetaModal()" aria-label="Fechar">×</button>
+      </div>
+      <form id="meta-form" class="modal-form">
+        <input type="hidden" id="meta-id">
+        <div class="form-group">
+          <label for="nome">Nome da Meta *</label>
+          <input type="text" id="nome" name="nome" placeholder="Ex: Comprar um carro, Viagem, Reserva de emergência..." required maxlength="100">
+          <span class="error-message" id="nome-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="valor">Valor da Meta *</label>
+          <div class="input-with-icon">
+            <span class="input-icon">R$</span>
+            <input type="number" id="valor" name="valor" step="0.01" min="0.01" placeholder="0,00" required>
+          </div>
+          <span class="error-message" id="valor-error"></span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="data_inicio">Data de Início *</label>
+            <input type="date" id="data_inicio" name="data_inicio" required>
+            <span class="error-message" id="data_inicio-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="data_final">Data Limite *</label>
+            <input type="date" id="data_final" name="data_final" required>
+            <span class="error-message" id="data_final-error"></span>
+          </div>
+        </div>
+        <div class="form-info-box">
+          <span class="info-icon">i</span>
+          <p>Defina uma meta realista e um prazo adequado para alcançá-la. Você poderá acompanhar seu progresso na página de metas.</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeMetaModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="save-meta-btn">
+            <span class="btn-text">💾 Salvar Meta</span>
+            <span class="btn-loading"><span class="spinner-small"></span> Salvando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- commoon primeiro -->
+  <script src="/js/common.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/metas.js"></script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <script src="/js/config-loader.js"></script>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/categorias.css">
+</head>
+<body class="<%= pageClass %>">
+  <%- include('components/navbar', { user: user }) %>
+  
+  <div class="dashboard-container">
+    <%- include('components/sidebar', { activeMenu: 'categorias' }) %>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <div>
+          <h1>Categorias</h1>
+          <p>Visualize e analise seus gastos por categoria</p>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalCategoria()">
+          ➕ Nova Categoria
+        </button>
+      </div>
+
+      <!-- Filtros de Período -->
+      <div class="filters-section">
+        <div class="filters-group">
+          <h3>Período de Análise</h3>
+          <div class="period-buttons">
+            <button class="period-btn active" data-period="mes" onclick="selecionarPeriodo('mes')">
+              Este Mês
+            </button>
+            <button class="period-btn" data-period="trimestre" onclick="selecionarPeriodo('trimestre')">
+              Trimestre
+            </button>
+            <button class="period-btn" data-period="ano" onclick="selecionarPeriodo('ano')">
+              Este Ano
+            </button>
+            <button class="period-btn" data-period="personalizado" onclick="selecionarPeriodo('personalizado')">
+              Personalizado
+            </button>
+          </div>
+          
+          <div class="custom-date-range" id="custom-date-range" style="display: none;">
+            <input type="date" id="data-inicio" class="filter-input" placeholder="Data início">
+            <input type="date" id="data-fim" class="filter-input" placeholder="Data fim">
+            <button class="btn-filter" onclick="aplicarFiltroPersonalizado()">
+              <i>🔍</i> Aplicar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo Geral -->
+      <div class="stats-grid">
+        <div class="stat-card receitas">
+          <div class="stat-icon">📈</div>
+          <div class="stat-info">
+            <h3>Total Receitas</h3>
+            <p class="stat-value" id="total-receitas">R$ 0,00</p>
+            <span class="stat-count" id="count-receitas">0 categorias</span>
+          </div>
+        </div>
+
+        <div class="stat-card despesas">
+          <div class="stat-icon">📉</div>
+          <div class="stat-info">
+            <h3>Total Despesas</h3>
+            <p class="stat-value" id="total-despesas">R$ 0,00</p>
+            <span class="stat-count" id="count-despesas">0 categorias</span>
+          </div>
+        </div>
+
+        <div class="stat-card saldo">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <h3>Saldo</h3>
+            <p class="stat-value" id="saldo-total">R$ 0,00</p>
+            <span class="stat-count" id="periodo-texto">Este mês</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de Categorias -->
+      <div class="dashboard-section">
+        <div class="section-header">
+          <h2>Análise Detalhada</h2>
+          <div class="section-actions">
+            <button class="btn-export" onclick="exportarCategorias()">
+              <i>📊</i> Exportar
+            </button>
+          </div>
+        </div>
+        
+        <div class="categorias-container">
+          <div class="table-container">
+            <table class="categorias-table" id="categorias-table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th class="text-right">Receitas</th>
+                  <th class="text-right">Despesas</th>
+                  <th class="text-right">Saldo</th>
+                  <th class="text-center">Transações</th>
+                  <th class="text-center">% Total</th>
+                </tr>
+              </thead>
+              <tbody id="categorias-tbody">
+                <!-- Categorias serão carregadas via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading-container" id="loading-categorias">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Carregando categorias...</p>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state" style="display: none;">
+          <div class="empty-state-icon">📂</div>
+          <h3>Nenhuma transação encontrada</h3>
+          <p>Não há transações no período selecionado.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Nova Categoria -->
+  <div class="modal-overlay" id="categoria-modal" style="display:none;" tabindex="-1" aria-label="Modal Nova Categoria">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Nova Categoria</h2>
+        <button class="btn-close" onclick="fecharModalCategoria()" aria-label="Fechar modal">&times;</button>
+      </div>
+
+      <form id="categoria-form" onsubmit="salvarCategoria(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="categoria-nome">
+              Nome da Categoria <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="categoria-nome" 
+              name="nome" 
+              placeholder="Ex: Alimentação, Salário, etc."
+              required 
+              maxlength="100"
+              autocomplete="off"
+            />
+            <small class="form-hint">Escolha um nome único para sua categoria</small>
+          </div>
+
+          <div class="form-group">
+            <label for="categoria-tipo">
+              Tipo <span class="required">*</span>
+            </label>
+            <select id="categoria-tipo" name="tipo" required>
+              <option value="">Selecione o tipo</option>
+              <option value="despesa">💸 Despesa</option>
+              <option value="receita">💰 Receita</option>
+            </select>
+            <small class="form-hint">Defina se é uma categoria de entrada ou saída</small>
+          </div>
+
+          <div class="form-group">
+            <label for="categoria-icone">Ícone (opcional)</label>
+            <div class="icone-selector">
+              <input 
+                type="text" 
+                id="categoria-icone" 
+                name="icone" 
+                placeholder="📂"
+                maxlength="2"
+                value="📂"
+              />
+              <div class="icone-suggestions">
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🍔')">🍔</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🚗')">🚗</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🏠')">🏠</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('⚕️')">⚕️</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('📚')">📚</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🎮')">🎮</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('👔')">👔</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('💼')">💼</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('📈')">📈</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🎁')">🎁</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('✈️')">✈️</button>
+                <button type="button" class="icone-btn" onclick="selecionarIcone('🎨')">🎨</button>
+              </div>
+            </div>
+            <small class="form-hint">Escolha um emoji para representar sua categoria</small>
+          </div>
+
+          <div class="form-info-box">
+            <div class="info-icon">💡</div>
+            <div class="info-content">
+              <strong>Dica:</strong> Crie categorias específicas para organizar melhor suas finanças!
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="fecharModalCategoria()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-salvar-categoria">
+            <span class="btn-text">Criar Categoria</span>
+            <span class="btn-loading" style="display: none;">
+              <span class="spinner-small"></span> Salvando...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/common.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/categorias.js"></script>
+</body>
+</html>
